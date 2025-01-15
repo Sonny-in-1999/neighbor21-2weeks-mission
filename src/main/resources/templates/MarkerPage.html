@@ -63,12 +63,18 @@
                     content: position.content, // 표시할 내용
                 });
 
-                // 마커에 정보창을 위한 mouse over/out 이벤트 핸들러 적용
+                /*마커에 정보창을 위한 mouse over/out 이벤트 핸들러 적용*/
+                // mouse over -> 정보창 표출
                 kakao.maps.event.addListener(marker, 'mouseover', function () {
                     infowindow.open(map, marker);
                 });
-
+                // mouse out -> 정보창 닫기
                 kakao.maps.event.addListener(marker, 'mouseout', function () {
+                    infowindow.close();
+                });
+
+                kakao.maps.event.addListener(marker, 'click', function () {
+                    marker.setMap(null);
                     infowindow.close();
                 });
 
