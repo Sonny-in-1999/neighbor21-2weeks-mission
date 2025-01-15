@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>마커</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<h1>마커</h1>
+<h3>요구사항</h3>
+<p>- node.json 파일의 데이터를 받아와 위도 경도 값을 사용하여 지도 내 marker를 표출한다.</p>
+<p>- marker에 마우스 오버 시 json 파일의 name이 표출되도록한다.</p>
+<p>- static/public 디렉토리 내의 marker.png로 마커 이미지를 설정한다.</p>
+<p>- 마커 사이즈는 16*16으로 설정한다.</p>
+<p>- Bounds 기능을 활용하여 중심좌표로 이동한다.</p>
+<p>- 버튼 클릭 시 지도 상의 마커 show/hidden</p>
+<button id="toggleMarker">마커 보기/숨기기</button>
+<div id="map" style="width:auto; height:400px;"></div>
+<a href="/kakao-map/main">메인 페이지로 돌아가기</a>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=3ffa1161d8b4c0591fbbf2b7dbe95024"></script>
+<script>
+    const container = document.getElementById('map')
+    const options = {  // 지도 생성 옵션
+        center: new kakao.maps.LatLng(37.495074487818854, 127.12245951046728),  // 지도 중심좌표
+        level: 5  // 지도 확대/축소 레벨
+    };
+    // 지도 생성
+    const map = new kakao.maps.Map(container, options);
+    let markers = [];
+    let positions = []; // 마커 표출을 위한 좌표
+    let markerVisible = true; // 마커 가시성 상태(초기값: 보이개)
+    const markerImageSrc = "/public/marker.png"; // 마커 이미지 경로
+    const imageSize = new kakao.maps.Size(16, 16) // 마커 이미지 크기 16*16
+    const markerImage = new kakao.maps.MarkerImage(markerImageSrc, imageSize);
+    const bounds = new kakao.maps.LatLngBounds(); // 지도 범위(Bounds)
+
+    // json 파일 요청 후 marker 좌표 적용
+    $.ajax({
+        url: "/kakao-map/api/geo-info?jsonFileName=node",
+        method: "GET",
+        success: function (data) {
+            // // url 속성값에서 jsonFileName를 키값으로 추출
+            // const urlParams = new URLSearchParams(this.url.split('?')[1])
+            // // jsonFileName 값 추출
+            // const jsonFileName = urlParams.get("jsonFileName");
+            data.forEach(item => {
+                positions.push({
+                    content: `<div>${item.name}</div>`,
+                    latlng: new kakao.maps.LatLng(item.latitude, item.longitude)
+                })
+            });
+
+            // 좌표값으로 마커 생성
+            positions.forEach(position => {
+                const marker = new kakao.maps.Marker({
+                    map: map,
+                    position: position.latlng,
+                    image: markerImage
+                });
+
+                // 각 좌표 별 정보창 생성
+                const infowindow = new kakao.maps.InfoWindow({
+                    content: position.content, // 표시할 내용
+                });
+
+                // 마커에 정보창을 위한 mouse over/out 이벤트 핸들러 적용
+                kakao.maps.event.addListener(marker, 'mouseover', function () {
+                    infowindow.open(map, marker);
+                });
+
+                kakao.maps.event.addListener(marker, 'mouseout', function () {
+                    infowindow.close();
+                });
+
+                // 마커 지도에 표시
+                marker.setMap(map);
+
+                // 생성된 마커 배열에 추가
+                markers.push(marker);
+
+                // bounds 적용
+                bounds.extend(position.latlng);
+            });
+            // 지도에 Bounds 설정 적용
+            map.setBounds(bounds);
+        },
+    })
+
+    const toggleButton = document.getElementById('toggleMarker');
+    toggleButton.textContent = markerVisible ? "마커 숨기기" : "마커 보기";
+    toggleButton.addEventListener('click', function () {
+        if (markerVisible) {
+            setMarkers(null);
+        } else {
+            setMarkers(map);
+        }
+        markerVisible = !markerVisible;
+    });
+
+    // 배열에 추가된 마커들을 지도에 표시하거나 삭제하는 함수
+    function setMarkers(map) {
+        for (var i = 0; i < markers.length; i++) {
+            markers[i].setMap(map);
+        }
+    }
+</script>
+</body>
+</html>

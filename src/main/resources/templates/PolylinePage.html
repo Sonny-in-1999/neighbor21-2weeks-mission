@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>폴리라인</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<h1>폴리라인</h1>
+<h3>요구사항</h3>
+<p>- link.json 파일의 데이터를 받아와 위도 경도 값을 사용하여 지도 내 polyline을 표출한다.</p>
+<p>- Bounds 기능을 활용하여 line을 그린 후 중심좌표로 이동한다.</p>
+<p>- 버튼 클릭 시 지도 상의 폴리라인 show/hidden</p>
+<button id="togglePolyline">폴리라인 보기/숨기기</button>
+<div id="map" style="width:auto; height:400px;"></div>
+<a href="/kakao-map/main">메인 페이지로 돌아가기</a>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=3ffa1161d8b4c0591fbbf2b7dbe95024"></script>
+<script>
+    const container = document.getElementById('map')
+    const options = {  // 지도 생성 옵션
+        center: new kakao.maps.LatLng(37.495074487818854, 127.12245951046728),  // 지도 중심좌표
+        level: 5  // 지도 확대/축소 레벨
+    };
+    // 지도 생성
+    const map = new kakao.maps.Map(container, options);
+
+    let path = [];  // polyline 표출을 위한 경로 객체
+    let points = [];  // Bounds 설정을 위한 좌표
+    let polyline = null;  // 폴리라인 객체
+    let polylineVisible = true; // 폴리라인 가시성 상태(초기값: 보이게)
+
+    // json 파일 요청 후 polyline 및 bounds 적용
+    $.ajax({
+        url: "/kakao-map/api/geo-info?jsonFileName=link",
+        method: "GET",
+        success: function (data) {
+            console.log(data)
+            data.forEach(item => {
+                path.push(new kakao.maps.LatLng(item.latitude, item.longitude))
+                points.push(new kakao.maps.LatLng(item.latitude, item.longitude));
+            });
+            polyline = new kakao.maps.Polyline({
+                path: path,
+                strokeWeight: 3,
+                strokeColor: '#ff0000',
+                strokeOpacity: 0.8,
+                strokeStyle: 'dashed',
+            });
+            polyline.setMap(map);
+
+            // 지도를 재설정할 범위정보를 가지고 있을 LatLngBounds 객체를 생성합니다
+            const bounds = new kakao.maps.LatLngBounds();
+
+            // LatLngBounds 객체에 좌표를 추가합니다
+            for (let i = 0; i < points.length; i++) {
+                bounds.extend(points[i]);
+            }
+
+            // 지도에 Bounds 설정 적용
+            map.setBounds(bounds);
+        },
+    });
+
+    // 토글 버튼 이벤트 핸들러
+    const toggleButton = document.getElementById('togglePolyline');
+    toggleButton.addEventListener('click', function () {
+        if (polyline) {
+            if (polylineVisible) { // 폴리라인 숨기기
+                polyline.setMap(null);
+                toggleButton.textContent = '폴리라인 보기';
+            } else { // 폴리라인 보이기
+                polyline.setMap(map);
+                toggleButton.textContent = '폴리라인 숨기기';
+            }
+            polylineVisible = !polylineVisible; // 상태 토글
+        }
+    });
+</script>
+</body>
+</html>

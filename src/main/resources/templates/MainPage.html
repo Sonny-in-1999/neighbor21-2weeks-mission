@@ -1,55 +1,13 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>메인 페이지</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>메인페이지</title>
 </head>
 <body>
-<h1 th:text="'환영합니다 ' + ${name} + '!'"></h1>
-<div id="map" style="width:auto; height:400px;"></div>
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=3ffa1161d8b4c0591fbbf2b7dbe95024"></script>
-<script>
-    const container = document.getElementById('map')
-    const options = {  // 지도 생성 옵션
-        center: new kakao.maps.LatLng(37.495074487818854, 127.12245951046728),  // 지도 중심좌표
-        level: 5  // 지도 확대/축소 레벨
-    };
-    // 지도 생성
-    const map = new kakao.maps.Map(container, options);
-
-    let path = [];
-    let points = [];
-
-    $.ajax({
-        url: "/kakao-map/api/geo-info",
-        method: "GET",
-        success: function (data) {
-            console.log(data)
-            data.forEach(item => {
-                path.push(new kakao.maps.LatLng(item.latitude, item.longitude))
-                points.push(new kakao.maps.LatLng(item.latitude, item.longitude));
-            });
-            const polyline = new kakao.maps.Polyline({
-                path: path,
-                strokeWeight: 3,
-                strokeColor: '#ff0000',
-                strokeOpacity: 0.7,
-                strokeStyle: 'solid'
-            });
-            polyline.setMap(map);
-
-            // 지도를 재설정할 범위정보를 가지고 있을 LatLngBounds 객체를 생성합니다
-            const bounds = new kakao.maps.LatLngBounds();
-
-            let i;
-            for (i = 0; i < points.length; i++) {
-                // // LatLngBounds 객체에 좌표를 추가합니다
-                bounds.extend(points[i]);
-            }
-            map.setBounds(bounds);
-        },
-    });
-</script>
+<h1>실습 결과 페이지 목록</h1>
+<a href="/kakao-map/polyline">미션1: 폴리라인</a>
+<br/>
+<a href="/kakao-map/marker">미션2: 마커</a>
 </body>
 </html>

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,17 +19,25 @@ import java.util.Map;
 public class KakaoMapController {
 
     @GetMapping("/main")
-    public String mainPage(@RequestParam(defaultValue = "Guest") String name, Model model) {
-
-        model.addAttribute("name", name);
+    public String mainPage() {
         return "MainPage";
+    }
+
+    @GetMapping("/polyline")
+    public String polylinePage() {
+        return "PolylinePage";
+    }
+
+    @GetMapping("/marker")
+    public String markerPage() {
+        return "MarkerPage";
     }
 
     @GetMapping("/api/geo-info")
     @ResponseBody
-    public List<Map<String, Object>> getGeoInfo() throws IOException {
+    public List<Map<String, Object>> getGeoInfo(@RequestParam String jsonFileName) throws IOException {
         // 정적 파일 경로 지정
-        ClassPathResource resource = new ClassPathResource("static/link.json");
+        ClassPathResource resource = new ClassPathResource("static/" + jsonFileName + ".json");
 
         // link.json 파일 읽기
         ObjectMapper objectMapper = new ObjectMapper();
