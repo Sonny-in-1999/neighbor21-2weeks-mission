@@ -76,6 +76,8 @@
 
                 kakao.maps.event.addListener(marker, 'click', function () {
                     marker.setMap(null);
+                    // markers 배열에서 해당 마커 정보 삭제(추후 토글 버튼으로 마커 초기화 시, 제거한 마커는 다시 표출되지 않음)
+                    markers = markers.filter(m => m !== marker);
                     infowindow.close();
                 });
 
@@ -107,7 +109,7 @@
 
     // 배열에 추가된 마커들을 지도에 표시하거나 삭제하는 함수
     function setMarkers(map) {
-        for (var i = 0; i < markers.length; i++) {
+        for (let i = 0; i < markers.length; i++) {
             markers[i].setMap(map);
         }
     }
