@@ -11,6 +11,7 @@
 <p>- link.json 파일의 데이터를 받아와 위도 경도 값을 사용하여 지도 내 polyline을 표출한다.</p>
 <p>- Bounds 기능을 활용하여 line을 그린 후 중심좌표로 이동한다.</p>
 <p>- 버튼 클릭 시 지도 상의 폴리라인 show/hidden</p>
+<p>- 기존 polyline 데이터를 받아 1초마다 방위각을 구해 회전하며 데이터 순서에 따라 움직이는 customOverlay를 구현한다.</p>
 <button id="togglePolyline">폴리라인 보기/숨기기</button>
 <div id="map" style="width:auto; height:400px;"></div>
 <a href="/kakao-map/main">메인 페이지로 돌아가기</a>
@@ -28,6 +29,11 @@
     let points = [];  // Bounds 설정을 위한 좌표
     let polyline = null;  // 폴리라인 객체
     let polylineVisible = true; // 폴리라인 가시성 상태(초기값: 보이게)
+    const busImageSrc = "/public/bus.png"; // 버스 이미지 경로
+    const busImage = `<img src="${busImageSrc}" style="width:16px; height:20px; transform:rotate(0deg);" id="bus">`; // 버스 이미지 객체
+    let customOverlay = null; // CustomOverlay 객체
+    let index = 0; // 경로(path)계산용 인덱스
+    let timer = null; // 이동을 제어하기 위한 타이머
 
     // json 파일 요청 후 polyline 및 bounds 적용
     $.ajax({
@@ -39,27 +45,85 @@
                 path.push(new kakao.maps.LatLng(item.latitude, item.longitude))
                 points.push(new kakao.maps.LatLng(item.latitude, item.longitude));
             });
+
+            // 폴리라인 생성
             polyline = new kakao.maps.Polyline({
                 path: path,
+                endArrow: true,
                 strokeWeight: 3,
                 strokeColor: '#ff0000',
                 strokeOpacity: 0.8,
-                strokeStyle: 'dashed',
+                strokeStyle: 'solid',
             });
             polyline.setMap(map);
 
-            // 지도를 재설정할 범위정보를 가지고 있을 LatLngBounds 객체를 생성합니다
+            // 지도에 Bounds 설정(지도 표시 범위)
             const bounds = new kakao.maps.LatLngBounds();
-
-            // LatLngBounds 객체에 좌표를 추가합니다
-            for (let i = 0; i < points.length; i++) {
-                bounds.extend(points[i]);
-            }
-
-            // 지도에 Bounds 설정 적용
+            points.forEach(point => bounds.extend(point));
             map.setBounds(bounds);
+
+            // CustomOverlay 생성
+            customOverlay = new kakao.maps.CustomOverlay({
+                map: map,
+                clickable: true,
+                content: busImage,
+                position: path[0], // 시작 지점
+                xAnchor: 0.5,
+                yAnchor: 0.5,
+                zIndex: 3
+            });
+            customOverlay.setMap(map);
+
+            startBusMovement();  // 버스 출발
         },
     });
+
+
+    // 버스 이동
+    function startBusMovement() {
+        timer = setInterval(() => {
+            if (index < path.length - 1) {
+                const currentPosition = path[index];
+                const nextPosition = path[index + 1];
+
+                // 방위각 계산
+                const angle = calculateAzimuth(currentPosition, nextPosition);
+
+                // 버스 이미지 객체 위치 및 회전 적용
+                customOverlay.setPosition(nextPosition);
+                const busElement = document.getElementById('bus');
+                busElement.style.transform = `rotate(${angle}deg)`;
+
+                // 네비게이션 경로안내처럼 지나온 길은 polyline에서 지워지도록 구현해보았음.
+                if (index > 0) {
+                    // 현재 경로 이전의 index 좌표 제거 하여 polyline 업데이트
+                    polyline.setPath(path.slice(index));
+                }
+
+                // 인덱스 업데이트
+                index++;
+            } else {
+                // 경로 끝에 도달 시 이동 중지
+                clearInterval(timer);
+            }
+        }, 1000); // 1000ms 1초마다 이동
+    }
+
+    // 방위각 계산
+    function calculateAzimuth(position1, position2) {
+        // 위도와 경도를 라디안 단위로 변환
+        const latitude1 = position1.getLat() * (Math.PI / 180);
+        const longitude1 = position1.getLng() * (Math.PI / 180);
+        const latitude2 = position2.getLat() * (Math.PI / 180);
+        const longitude2 = position2.getLng() * (Math.PI / 180);
+
+        // 방위각 계산
+        const y = Math.sin(longitude2 - longitude1) * Math.cos(latitude2);
+        const x = Math.cos(latitude1) * Math.sin(latitude2) - Math.sin(latitude1) * Math.cos(latitude2) * Math.cos(longitude2 - longitude1);
+        const azimuth = Math.atan2(y, x) * (180 / Math.PI);
+
+        return (azimuth + 360) % 360; // 방위각을 0~360도 범위로 변환
+    }
 
     // 토글 버튼 이벤트 핸들러
     const toggleButton = document.getElementById('togglePolyline');
