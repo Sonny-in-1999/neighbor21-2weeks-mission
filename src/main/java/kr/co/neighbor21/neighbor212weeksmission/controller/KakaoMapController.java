@@ -33,6 +33,11 @@ public class KakaoMapController {
         return "MarkerPage";
     }
 
+    @GetMapping("/drawing-line")
+    public String drawingLinePage() {
+        return "DrawingLinePage";
+    }
+
     @GetMapping("/api/geo-info")
     @ResponseBody
     public List<Map<String, Object>> getGeoInfo(@RequestParam String jsonFileName) throws IOException {

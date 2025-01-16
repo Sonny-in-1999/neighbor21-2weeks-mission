@@ -12,7 +12,7 @@
 <p>- Bounds 기능을 활용하여 line을 그린 후 중심좌표로 이동한다.</p>
 <p>- 버튼 클릭 시 지도 상의 폴리라인 show/hidden</p>
 <p>- 기존 polyline 데이터를 받아 1초마다 방위각을 구해 회전하며 데이터 순서에 따라 움직이는 customOverlay를 구현한다.</p>
-<p>- 버스 이동 토글버튼 추가</p>
+<p>- 버스 토글버튼 추가</p>
 <button id="togglePolyline">폴리라인 숨기기</button>
 <button id="toggleBusMovement">버스 출발</button>
 <div id="map" style="width:auto; height:400px;"></div>
@@ -111,7 +111,7 @@
                 clearInterval(timer);
                 busToggleButton.textContent = '버스 초기화';
             }
-        }, 1000); // 1000ms 1초마다 이동
+        }, 1000); // 1000ms 1초마다 이동(굉장히 느리게 움직이니 테스트시 인터벌 간격을 크게 줄여놓는게 좋습니다.)
     }
 
     // 방위각 계산
