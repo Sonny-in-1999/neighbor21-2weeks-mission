@@ -15,18 +15,29 @@
 <p>- Bounds 기능을 활용하여 중심좌표로 이동한다.</p>
 <p>- 버튼 클릭 시 지도 상의 마커 show/hidden</p>
 <p>- 마커 클릭 시 지도 내에서 해당 마커를 제거한다.</p>
+<p>- marker cluster 적용</p>
 <button id="toggleMarker">마커 숨기기</button>
 <div id="map" style="width:auto; height:400px;"></div>
 <a href="/kakao-map/main">메인 페이지로 돌아가기</a>
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=3ffa1161d8b4c0591fbbf2b7dbe95024"></script>
+<script type="text/javascript"
+        src="//dapi.kakao.com/v2/maps/sdk.js?appkey=3ffa1161d8b4c0591fbbf2b7dbe95024&libraries=clusterer"></script>
 <script>
     const container = document.getElementById('map')
     const options = {  // 지도 생성 옵션
-        center: new kakao.maps.LatLng(37.495074487818854, 127.12245951046728),  // 지도 중심좌표
+        // 지도 중심좌표 임의지정(setBounds 호출시점에 중심좌표가 변경됩니다.)
+        center: new kakao.maps.LatLng(37.495074487818854, 127.12245951046728),
         level: 5  // 지도 확대/축소 레벨
     };
     // 지도 생성
     const map = new kakao.maps.Map(container, options);
+
+    // 마커 클러스터러 생성
+    const clusterer = new kakao.maps.MarkerClusterer({
+        map: map, // 마커들을 클러스터로 관리하고 표시할 지도 객체
+        averageCenter: true, // 클러스터에 포함된 마커들의 평균 위치를 클러스터 마커 위치로 설정
+        minLevel: 10 // 클러스터 할 최소 지도 레벨
+    });
+
     let markers = [];
     let positions = []; // 마커 표출을 위한 좌표
     let markerVisible = true; // 마커 가시성 상태(초기값: 보이개)
@@ -78,6 +89,7 @@
                     marker.setMap(null);
                     // markers 배열에서 해당 마커 정보 삭제(추후 토글 버튼으로 마커 초기화 시, 제거한 마커는 다시 표출되지 않음)
                     markers = markers.filter(m => m !== marker);
+                    clusterer.removeMarker(marker);
                     infowindow.close();
                 });
 
@@ -90,6 +102,10 @@
                 // bounds 적용
                 bounds.extend(position.latlng);
             });
+
+            // 마커 클러스터러에 마커 추가
+            clusterer.addMarkers(markers);
+
             // 지도에 Bounds 설정 적용
             map.setBounds(bounds);
         },
@@ -109,8 +125,16 @@
 
     // 배열에 추가된 마커들을 지도에 표시하거나 삭제하는 함수
     function setMarkers(map) {
-        for (let i = 0; i < markers.length; i++) {
-            markers[i].setMap(map);
+        if (map === null) {  // 마커 숨기기
+            clusterer.clear();
+            for (let i = 0; i < markers.length; i++) {
+                markers[i].setMap(map);
+            }
+        } else {  // 마커 보기
+            for (let i = 0; i < markers.length; i++) {
+                markers[i].setMap(map);
+            }
+            clusterer.addMarkers(markers);
         }
     }
 </script>
