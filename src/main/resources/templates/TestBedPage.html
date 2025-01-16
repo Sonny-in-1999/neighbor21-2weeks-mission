@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>폴리라인 드래그 및 거리 계산</title>
+</head>
+<body>
+<h1>폴리라인 드래그 및 거리 계산</h1>
+<div id="map" style="width:auto; height:400px;"></div>
+<button id="distance-btn" style="margin-top: 10px;">총 거리 및 좌표 출력</button>
+<p id="distance-result" style="margin-top: 10px; font-size: 16px; color: blue;"></p>
+<p id="path-coordinates" style="margin-top: 10px; font-size: 14px; color: black; white-space: pre-line;"></p>
+<a href="/kakao-map/main">< 메인 페이지로 돌아가기</a>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=3ffa1161d8b4c0591fbbf2b7dbe95024"></script>
+<script>
+    const container = document.getElementById('map');
+    const options = {
+        center: new kakao.maps.LatLng(37.495074487818854, 127.12245951046728),
+        level: 5
+    };
+
+    const map = new kakao.maps.Map(container, options);
+
+    let drawingFlag = false; // 선이 그려지고 있는 상태
+    let draggableLine = null; // 실제 그려지는 Polyline
+    let markers = []; // 각 path 지점에 추가된 드래그 가능한 마커 배열
+
+    // Polyline 생성 함수
+    function createDraggableLine(path) {
+        draggableLine = new kakao.maps.Polyline({
+            map: map,
+            path: path,
+            strokeWeight: 3,
+            strokeColor: '#3A9ADB',
+            strokeOpacity: 1,
+            strokeStyle: 'solid'
+        });
+
+        // 기존 path 지점마다 마커 생성
+        createMarkersForPath(path);
+    }
+
+    // Path를 기반으로 드래그 가능한 마커 생성
+    function createMarkersForPath(path) {
+        clearMarkers();
+
+        path.forEach((position, index) => {
+            const marker = new kakao.maps.Marker({
+                position: position,
+                map: map,
+                draggable: true
+            });
+
+            // 마커 드래그 이벤트 추가
+            kakao.maps.event.addListener(marker, 'dragend', function () {
+                const newPosition = marker.getPosition();
+                updatePath(index, newPosition);
+            });
+
+            markers.push(marker);
+        });
+    }
+
+    // Path 업데이트 함수
+    function updatePath(index, newPosition) {
+        const path = draggableLine.getPath();
+        path[index] = newPosition;
+        draggableLine.setPath(path);
+    }
+
+    // 기존 마커 제거 함수
+    function clearMarkers() {
+        markers.forEach(marker => marker.setMap(null));
+        markers = [];
+    }
+
+    // 하버사인 공식을 사용한 거리 계산 함수
+    function getDistance(lat1, lng1, lat2, lng2) {
+        const R = 6371e3; // 지구 반지름 (단위: 미터)
+        const toRad = x => (x * Math.PI) / 180;
+
+        const φ1 = toRad(lat1);
+        const φ2 = toRad(lat2);
+        const Δφ = toRad(lat2 - lat1);
+        const Δλ = toRad(lng2 - lng1);
+
+        const a =
+            Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c; // 거리 반환 (미터)
+    }
+
+    // 총 거리 및 각 좌표 출력 함수
+    function calculateDistanceAndPath() {
+        if (!draggableLine) {
+            alert('선이 없습니다. 먼저 선을 그려주세요!');
+            return;
+        }
+
+        const path = draggableLine.getPath();
+
+        if (path.length < 2) {
+            alert('거리를 계산하려면 최소 두 지점이 필요합니다.');
+            return;
+        }
+
+        let totalDistance = 0;
+        let coordinatesInfo = '좌표 목록:\n';
+
+        // 각 좌표 간 거리 계산 및 누적
+        for (let i = 0; i < path.length - 1; i++) {
+            const start = path[i];
+            const end = path[i + 1];
+            totalDistance += getDistance(start.getLat(), start.getLng(), end.getLat(), end.getLng());
+        }
+
+        // 좌표 정보 작성
+        path.forEach((position, index) => {
+            coordinatesInfo += `${index + 1}. 위도: ${position.getLat()}, 경도: ${position.getLng()}\n`;
+        });
+
+        // 결과 출력
+        const resultElement = document.getElementById('distance-result');
+        resultElement.textContent = `총 거리: ${Math.round(totalDistance)} m`;
+
+        const coordinatesElement = document.getElementById('path-coordinates');
+        coordinatesElement.textContent = coordinatesInfo;
+    }
+
+    // 지도 클릭 이벤트
+    kakao.maps.event.addListener(map, 'click', function (mouseEvent) {
+        const clickPosition = mouseEvent.latLng;
+
+        if (!drawingFlag) {
+            drawingFlag = true;
+
+            if (draggableLine) {
+                draggableLine.setMap(null);
+                clearMarkers();
+            }
+
+            createDraggableLine([clickPosition]);
+        } else {
+            const path = draggableLine.getPath();
+            path.push(clickPosition);
+            draggableLine.setPath(path);
+            createMarkersForPath(path);
+        }
+    });
+
+    // 마우스 우클릭 이벤트
+    kakao.maps.event.addListener(map, 'rightclick', function () {
+        if (drawingFlag) {
+            drawingFlag = false;
+        }
+    });
+
+    // 버튼 클릭 이벤트
+    document.getElementById('distance-btn').addEventListener('click', calculateDistanceAndPath);
+</script>
+</body>
+</html>

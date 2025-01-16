@@ -36,7 +36,7 @@
     let customOverlay = null; // CustomOverlay 객체
     let index = 0; // 경로(path)계산용 인덱스
     let timer = null; // 이동을 제어하기 위한 타이머
-    let isBusMoving = false;  // 버스 이동 토글을 위한 불리언 값
+    let busMovingFlag = false;  // 버스 이동 상태
 
 
     // json 파일 요청 후 polyline 및 bounds 적용
@@ -155,16 +155,16 @@
             const busElement = document.getElementById('bus');
             busElement.style.transform = `rotate(0deg)`;
             busToggleButton.textContent = '버스 출발';
-            isBusMoving = !isBusMoving;
+            busMovingFlag = !busMovingFlag;
         }
-        else if (!isBusMoving) { // 버스가 멈춰있을 때
+        else if (!busMovingFlag) { // 버스가 멈춰있을 때
             startBusMovement();
             busToggleButton.textContent = '버스 정지';
-            isBusMoving = !isBusMoving;
+            busMovingFlag = !busMovingFlag;
         } else {  // 버스가 움직이고 있을 때
             clearInterval(timer);
             busToggleButton.textContent = '버스 출발';
-            isBusMoving = !isBusMoving;
+            busMovingFlag = !busMovingFlag;
         }
     });
 </script>

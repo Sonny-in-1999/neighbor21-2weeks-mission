@@ -11,13 +11,197 @@
 <a href="/kakao-map/main">< 메인 페이지로 돌아가기</a>
 <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=3ffa1161d8b4c0591fbbf2b7dbe95024"></script>
 <script>
-  const container = document.getElementById('map')
-  const options = {  // 지도 생성 옵션
-    center: new kakao.maps.LatLng(37.495074487818854, 127.12245951046728),  // 지도 중심좌표
-    level: 5  // 지도 확대/축소 레벨
-  };
-  // 지도 생성
-  const map = new kakao.maps.Map(container, options);
+    const container = document.getElementById('map');
+    const options = {
+        center: new kakao.maps.LatLng(37.495074487818854, 127.12245951046728),
+        level: 5
+    };
+    const map = new kakao.maps.Map(container, options);
+
+    let drawingFlag = false;
+    let moveLine;
+    let draggableLine;
+    let distanceOverlay;
+    let dots = [];
+
+    // Polyline(선) 생성 시
+    function createDraggableLine(path) {
+        draggableLine = new kakao.maps.Polyline({
+            map: map,
+            path: path,
+            strokeWeight: 3,
+            strokeColor: '#3A9ADB',
+            strokeOpacity: 1,
+            strokeStyle: 'solid',
+            draggable: true // 드래그 가능
+        });
+
+        // 드래그 종료 이벤트
+        kakao.maps.event.addListener(draggableLine, 'dragend', function () {
+            const newPath = draggableLine.getPath();
+            const endPoint = newPath[newPath.length - 1];
+            addNewPath(endPoint);
+        });
+    }
+
+    // 새로운 경로를 추가
+    function addNewPath(endPoint) {
+        const currentPath = draggableLine.getPath();
+        currentPath.push(endPoint);  // 드래그 종료 지점 추가
+        draggableLine.setPath(currentPath); // 경로 업데이트
+
+        const distance = Math.round(draggableLine.getLength());
+        displayCircleDot(endPoint, distance); // 새로운 지점 표시
+    }
+
+    // 지도 클릭 이벤트
+    kakao.maps.event.addListener(map, 'click', function (mouseEvent) {
+        const clickPosition = mouseEvent.latLng;
+
+        if (!drawingFlag) {
+            drawingFlag = true;
+
+            deleteClickLine();
+            deleteDistnce();
+            deleteCircleDot();
+
+            createDraggableLine([clickPosition]); // 새 Polyline 생성
+            displayCircleDot(clickPosition, 0); // 시작점 표시
+        } else {
+            const path = draggableLine.getPath();
+            path.push(clickPosition); // 경로에 새 점 추가
+            draggableLine.setPath(path);
+
+            const distance = Math.round(draggableLine.getLength());
+            displayCircleDot(clickPosition, distance);
+        }
+    });
+
+    kakao.maps.event.addListener(map, 'mousemove', function (mouseEvent) {
+        if (drawingFlag) {
+            const mousePosition = mouseEvent.latLng;
+            const path = draggableLine.getPath();
+            const movepath = [path[path.length - 1], mousePosition];
+
+            if (!moveLine) {
+                moveLine = new kakao.maps.Polyline({
+                    map: map,
+                    path: movepath,
+                    strokeWeight: 3,
+                    strokeColor: '#3A9ADB',
+                    strokeOpacity: 0.5,
+                    strokeStyle: 'solid'
+                });
+            } else {
+                moveLine.setPath(movepath);
+            }
+
+            const distance = Math.round(draggableLine.getLength() + moveLine.getLength());
+            const content = '<div class="dotOverlay distanceInfo">총거리 <span class="number">' + distance + '</span>m</div>';
+            showDistance(content, mousePosition);
+        }
+    });
+
+    kakao.maps.event.addListener(map, 'rightclick', function () {
+        if (drawingFlag) {
+            if (moveLine) {
+                moveLine.setMap(null);
+                moveLine = null;
+            }
+
+            const path = draggableLine.getPath();
+            if (path.length > 1) {
+                const distance = Math.round(draggableLine.getLength());
+                const content = getTimeHTML(distance);
+                showDistance(content, path[path.length - 1]);
+            } else {
+                deleteClickLine();
+                deleteCircleDot();
+                deleteDistnce();
+            }
+
+            drawingFlag = false;
+        }
+    });
+
+    function deleteClickLine() {
+        if (draggableLine) {
+            draggableLine.setMap(null);
+            draggableLine = null;
+        }
+    }
+
+    function showDistance(content, position) {
+        if (distanceOverlay) {
+            distanceOverlay.setPosition(position);
+            distanceOverlay.setContent(content);
+        } else {
+            distanceOverlay = new kakao.maps.CustomOverlay({
+                map: map,
+                content: content,
+                position: position,
+                xAnchor: 0,
+                yAnchor: 0,
+                zIndex: 3
+            });
+        }
+    }
+
+    function deleteDistnce() {
+        if (distanceOverlay) {
+            distanceOverlay.setMap(null);
+            distanceOverlay = null;
+        }
+    }
+
+    function displayCircleDot(position, distance) {
+        const distanceOverlay = new kakao.maps.CustomOverlay({
+            content: '<div class="dotOverlay">거리 <span class="number">' + distance + '</span>m</div>',
+            position: position,
+            yAnchor: 1,
+            zIndex: 2
+        });
+
+        const circleOverlay = new kakao.maps.CustomOverlay({
+            content: '<span class="dot"></span>',
+            position: position,
+            zIndex: 1
+        });
+
+        circleOverlay.setMap(map);
+        if (distance > 0) {
+            distanceOverlay.setMap(map);
+        }
+
+        dots.push({circle: circleOverlay, distance: distanceOverlay});
+    }
+
+    function deleteCircleDot() {
+        dots.forEach(dot => {
+            if (dot.circle) dot.circle.setMap(null);
+            if (dot.distance) dot.distance.setMap(null);
+        });
+        dots = [];
+    }
+
+    function getTimeHTML(distance) {
+        const walkTime = distance / 67 | 0;
+        const bycicleTime = distance / 227 | 0;
+
+        const walkHour = walkTime > 60 ? '<span class="number">' + Math.floor(walkTime / 60) + '</span>시간 ' : '';
+        const walkMin = '<span class="number">' + walkTime % 60 + '</span>분';
+
+        const bycicleHour = bycicleTime > 60 ? '<span class="number">' + Math.floor(bycicleTime / 60) + '</span>시간 ' : '';
+        const bycicleMin = '<span class="number">' + bycicleTime % 60 + '</span>분';
+
+        return `
+        <ul class="dotOverlay distanceInfo">
+            <li><span class="label">총거리</span><span class="number">${distance}</span>m</li>
+            <li><span class="label">도보</span>${walkHour}${walkMin}</li>
+            <li><span class="label">자전거</span>${bycicleHour}${bycicleMin}</li>
+        </ul>
+      `;
+    }
 </script>
 </body>
 </html>
