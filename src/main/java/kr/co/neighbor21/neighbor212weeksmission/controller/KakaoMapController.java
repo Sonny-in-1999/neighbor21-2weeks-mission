@@ -36,10 +36,10 @@ public class KakaoMapController {
     @GetMapping("/api/geo-info")
     @ResponseBody
     public List<Map<String, Object>> getGeoInfo(@RequestParam String jsonFileName) throws IOException {
-        // 정적 파일 경로 지정
-        ClassPathResource resource = new ClassPathResource("static/" + jsonFileName + ".json");
+        // resources 디렉토리 내부에 있는 파일 경로 지정
+        ClassPathResource resource = new ClassPathResource("db/" + jsonFileName + ".json");
 
-        // link.json 파일 읽기
+        // json 파일 읽기
         ObjectMapper objectMapper = new ObjectMapper();
         String geoJsonInfo = new String(Files.readAllBytes(resource.getFile().toPath()));
 

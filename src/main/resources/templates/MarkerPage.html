@@ -15,7 +15,7 @@
 <p>- Bounds 기능을 활용하여 중심좌표로 이동한다.</p>
 <p>- 버튼 클릭 시 지도 상의 마커 show/hidden</p>
 <p>- 마커 클릭 시 지도 내에서 해당 마커를 제거한다.</p>
-<button id="toggleMarker">마커 보기/숨기기</button>
+<button id="toggleMarker">마커 숨기기</button>
 <div id="map" style="width:auto; height:400px;"></div>
 <a href="/kakao-map/main">메인 페이지로 돌아가기</a>
 <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=3ffa1161d8b4c0591fbbf2b7dbe95024"></script>
@@ -94,12 +94,13 @@
     })
 
     const toggleButton = document.getElementById('toggleMarker');
-    toggleButton.textContent = markerVisible ? "마커 숨기기" : "마커 보기";
     toggleButton.addEventListener('click', function () {
         if (markerVisible) {
             setMarkers(null);
+            toggleButton.textContent = "마커 보기"
         } else {
             setMarkers(map);
+            toggleButton.textContent = "마커 숨기기"
         }
         markerVisible = !markerVisible;
     });
